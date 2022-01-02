@@ -14,6 +14,8 @@ import 'package:retrofit/retrofit.dart' as retrofit;
 import 'package:source_gen/source_gen.dart';
 import 'package:tuple/tuple.dart';
 
+const _analyzerIgnores = '// ignore_for_file: unnecessary_brace_in_string_interps';
+
 class RetrofitOptions {
   final bool? autoCastResponse;
 
@@ -101,7 +103,7 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.RestApi> {
     });
 
     final emitter = DartEmitter();
-    return DartFormatter().format('${classBuilder.accept(emitter)}');
+    return DartFormatter().format([_analyzerIgnores, classBuilder.accept(emitter)].join('\n\n'));
   }
 
   Field _buildDioFiled() => Field((m) => m
@@ -216,6 +218,24 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.RestApi> {
 
   ConstantReader? _getCacheAnnotation(MethodElement method) {
     final annotation = _typeChecker(retrofit.CacheControl)
+        .firstAnnotationOf(method, throwOnUnresolved: false);
+    if (annotation != null) return ConstantReader(annotation);
+    return null;
+  }
+
+  ConstantReader? _getContentTypeAnnotation(MethodElement method) {
+    final multipart = _getMultipartAnnotation(method);
+    final formUrlEncoded = _getFormUrlEncodedAnnotation(method);
+
+    if (multipart != null && formUrlEncoded != null) {
+      throw InvalidGenerationSourceError('Two content-type annotation on one request ${method.name}');
+    }
+
+    return multipart ?? formUrlEncoded;
+  }
+
+  ConstantReader? _getMultipartAnnotation(MethodElement method) {
+    final annotation = _typeChecker(retrofit.MultiPart)
         .firstAnnotationOf(method, throwOnUnresolved: false);
     if (annotation != null) return ConstantReader(annotation);
     return null;
@@ -381,11 +401,12 @@ class RetrofitGenerator extends GeneratorForAnnotation<retrofit.RestApi> {
       extraOptions[_contentType] = contentTypeInHeader;
     }
 
-    final contentType = _getFormUrlEncodedAnnotation(m);
+    final contentType = _getContentTypeAnnotation(m);
     if (contentType != null) {
       extraOptions[_contentType] =
           literal(contentType.peek("mime")?.stringValue);
     }
+
     extraOptions[_baseUrlVar] = refer(_baseUrlVar);
 
     final responseType = _getResponseTypeAnnotation(m);
@@ -690,8 +711,11 @@ You should create a new class to encapsulate the response.
           );
           blocks.add(Code("final value = $_resultVar.data;"));
         } else {
+          final fetchType = returnType.isNullable
+              ? "Map<String,dynamic>?"
+              : "Map<String,dynamic>";
           blocks.add(
-            refer("await $_dioVar.fetch<Map<String,dynamic>>")
+            refer("await $_dioVar.fetch<$fetchType>")
                 .call([options])
                 .assignFinal(_resultVar)
                 .statement,

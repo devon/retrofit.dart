@@ -5,6 +5,8 @@ import 'package:retrofit/retrofit.dart';
 import 'package:source_gen_test/annotations.dart';
 
 @ShouldGenerate(r'''
+// ignore_for_file: unnecessary_brace_in_string_interps
+
 class _RestClient implements RestClient {
   _RestClient(this._dio, {this.baseUrl});
 
@@ -128,6 +130,26 @@ abstract class HttpPatchTest {
 @RestApi(baseUrl: "https://httpbin.org/")
 abstract class FormUrlEncodedTest {
   @POST("/get")
+  @FormUrlEncoded()
+  Future<String> ip();
+}
+
+@ShouldGenerate(
+  r"contentType: 'multipart/form-data'",
+  contains: true,
+)
+@RestApi(baseUrl: "https://httpbin.org/")
+abstract class MultipartTest {
+  @POST("/get")
+  @MultiPart()
+  Future<String> ip();
+}
+
+@ShouldThrow('Two content-type annotation on one request ip', element: false)
+@RestApi(baseUrl: "https://httpbin.org/")
+abstract class TwoContentTypeAnnotationOnSameMethodTest {
+  @POST("/get")
+  @MultiPart()
   @FormUrlEncoded()
   Future<String> ip();
 }
@@ -1560,3 +1582,23 @@ mixin MethodInMixin {
 )
 @RestApi()
 abstract class NoMethods with MethodInMixin {}
+
+@ShouldGenerate(
+  r'''await _dio.fetch<Map<String, dynamic>?>''',
+  contains: true,
+)
+@RestApi()
+abstract class NullableGenericCastFetch {
+  @GET("/")
+  Future<User?> get();
+}
+
+@ShouldGenerate(
+  r'''await _dio.fetch<Map<String, dynamic>>''',
+  contains: true,
+)
+@RestApi()
+abstract class GenericCastFetch {
+  @GET("/")
+  Future<User> get();
+}
