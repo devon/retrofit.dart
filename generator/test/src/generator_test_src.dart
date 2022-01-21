@@ -806,29 +806,29 @@ abstract class TestModelList {
 }
 
 @ShouldGenerate(r'''
-  RequestOptions newRequestOptions(Options? options) {
+  RequestOptions newRequestOptions(Object? options) {
     if (options is RequestOptions) {
       return options as RequestOptions;
     }
-    if (options == null) {
-      return RequestOptions(path: '');
+    if (options is Options) {
+      return RequestOptions(
+        method: options.method,
+        sendTimeout: options.sendTimeout,
+        receiveTimeout: options.receiveTimeout,
+        extra: options.extra,
+        headers: options.headers,
+        responseType: options.responseType,
+        contentType: options.contentType.toString(),
+        validateStatus: options.validateStatus,
+        receiveDataWhenStatusError: options.receiveDataWhenStatusError,
+        followRedirects: options.followRedirects,
+        maxRedirects: options.maxRedirects,
+        requestEncoder: options.requestEncoder,
+        responseDecoder: options.responseDecoder,
+        path: '',
+      );
     }
-    return RequestOptions(
-      method: options.method,
-      sendTimeout: options.sendTimeout,
-      receiveTimeout: options.receiveTimeout,
-      extra: options.extra,
-      headers: options.headers,
-      responseType: options.responseType,
-      contentType: options.contentType.toString(),
-      validateStatus: options.validateStatus,
-      receiveDataWhenStatusError: options.receiveDataWhenStatusError,
-      followRedirects: options.followRedirects,
-      maxRedirects: options.maxRedirects,
-      requestEncoder: options.requestEncoder,
-      responseDecoder: options.responseDecoder,
-      path: '',
-    );
+    return RequestOptions(path: '');
   }
 ''', contains: true)
 @ShouldGenerate(r'''
@@ -1404,10 +1404,11 @@ abstract class DynamicInnerGenericTypeShouldBeCastedAsDynamic {
 @ShouldGenerate(
   r'''
     final value = GenericUser<List<User>>.fromJson(
-        _result.data!,
-        (json) => (json as List<dynamic>)
-            .map<User>((i) => User.fromJson(i as Map<String, dynamic>))
-            .toList());
+      _result.data!,
+      (json) => (json as List<dynamic>)
+          .map<User>((i) => User.fromJson(i as Map<String, dynamic>))
+          .toList(),
+    );
     return value;
   ''',
   contains: true,
@@ -1426,7 +1427,8 @@ abstract class DynamicInnerListGenericTypeShouldBeCastedRecursively {
             _result.data!,
             (json) => (json as List<dynamic>)
                 .map<User>((i) => User.fromJson(i as Map<String, dynamic>))
-                .toList());
+                .toList(),
+          );
     return value;
   ''',
   contains: true,
@@ -1493,9 +1495,10 @@ abstract class NullableDynamicInnerGenericTypeShouldBeCastedAsMap {
 @ShouldGenerate(
   r'''
     final value = GenericUser<List<double>>.fromJson(
-        _result.data!,
-        (json) =>
-            (json as List<dynamic>).map<double>((i) => i as double).toList());
+      _result.data!,
+      (json) =>
+          (json as List<dynamic>).map<double>((i) => i as double).toList(),
+    );
     return value;
   ''',
   contains: true,
@@ -1514,7 +1517,8 @@ abstract class DynamicInnerListGenericPrimitiveTypeShouldBeCastedRecursively {
             _result.data!,
             (json) => (json as List<dynamic>)
                 .map<double>((i) => i as double)
-                .toList());
+                .toList(),
+          );
     return value;
   ''',
   contains: true,
